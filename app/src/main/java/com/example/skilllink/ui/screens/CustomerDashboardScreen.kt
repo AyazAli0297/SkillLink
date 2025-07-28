@@ -29,7 +29,7 @@ import androidx.compose.material.icons.filled.ElectricalServices
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.FormatPaint
 import androidx.compose.material.icons.filled.Handyman
-
+//customer
 @Composable
 fun CustomerDashboardScreen() {
     val selectedTab = remember { mutableStateOf(0) }
