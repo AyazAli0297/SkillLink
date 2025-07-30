@@ -27,7 +27,7 @@ class AuthViewModel : ViewModel() {
         email: String,
         password: String,
         role: String,
-        onSuccess: (String) -> Unit = {}, // Passes the role string
+        onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
         _authState.value = AuthResult.Loading
@@ -45,7 +45,7 @@ class AuthViewModel : ViewModel() {
                         firestore.collection("users").document(uid).set(user)
                             .addOnSuccessListener {
                                 _authState.value = AuthResult.Success
-                                onSuccess(role) // Pass the role string back
+                                onSuccess()
                             }
                             .addOnFailureListener { e ->
                                 _authState.value = AuthResult.Error(e.message ?: "Firestore error")
@@ -62,7 +62,7 @@ class AuthViewModel : ViewModel() {
     fun signIn(
         email: String,
         password: String,
-        onSuccess: (String, Boolean) -> Unit = { _, _ -> }, // role, profileComplete
+        onSuccess: (String) -> Unit = {}, // role: "customer" or "provider"
         onError: (String) -> Unit = {}
     ) {
         _authState.value = AuthResult.Loading
@@ -74,9 +74,8 @@ class AuthViewModel : ViewModel() {
                         firestore.collection("users").document(uid).get()
                             .addOnSuccessListener { document ->
                                 val role = document.getString("role") ?: ""
-                                val profileComplete = document.getBoolean("profileComplete") ?: false
                                 _authState.value = AuthResult.Success
-                                onSuccess(role, profileComplete)
+                                onSuccess(role)
                             }
                             .addOnFailureListener { e ->
                                 _authState.value = AuthResult.Error(e.message ?: "Failed to fetch user role")

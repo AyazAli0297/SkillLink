@@ -10,10 +10,6 @@ import com.example.skilllink.ui.screens.SignInScreen
 import com.example.skilllink.ui.screens.SignUpScreen
 import com.example.skilllink.ui.screens.SkilledDashboardScreen
 import com.example.skilllink.ui.screens.WelcomeScreen
-import com.example.skilllink.ui.screens.SkilledProfileScreen
-import com.example.skilllink.ui.screens.ViewBookingsScreen
-import com.example.skilllink.ui.screens.WalletScreen
-import com.example.skilllink.ui.screens.ContactSupportScreen
 
 sealed class Screen(val route: String) {
     object Welcome : Screen("welcome")
@@ -21,10 +17,6 @@ sealed class Screen(val route: String) {
     object SignUp : Screen("signup")
     object CustomerDashboard : Screen("customer_dashboard")
     object SkilledDashboard : Screen("skilled_dashboard")
-    object SkilledProfile : Screen("skilled_profile")
-    object ViewBookings : Screen("view_bookings")
-    object Wallet : Screen("wallet")
-    object ContactSupport : Screen("contact_support")
 }
 
 @Composable
@@ -43,37 +35,19 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
                 onForgotPassword = { /* TODO: Handle forgot password */ }
             )
         }
+
         composable(Screen.SignUp.route) {
             SignUpScreen(
                 navController = navController,
-                onSignUp = { /* handled in SignUpScreen */ },
+                onSignUp = { /* TODO: Handle sign up logic */ },
                 onSignIn = { navController.navigate(Screen.SignIn.route) }
             )
         }
-        composable(Screen.SkilledProfile.route) {
-            SkilledProfileScreen(
-                navController = navController,
-                onProfileComplete = {
-                    navController.navigate(Screen.SkilledDashboard.route) {
-                        popUpTo(Screen.SkilledProfile.route) { inclusive = true }
-                    }
-                }
-            )
-        }
         composable(Screen.CustomerDashboard.route) {
-            CustomerDashboardScreen()
+            CustomerDashboardScreen(navController)
         }
         composable(Screen.SkilledDashboard.route) {
-            SkilledDashboardScreen(navController)
-        }
-        composable(Screen.ViewBookings.route) {
-            ViewBookingsScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Screen.Wallet.route) {
-            WalletScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Screen.ContactSupport.route) {
-            ContactSupportScreen(onBack = { navController.popBackStack() })
+            SkilledDashboardScreen()
         }
     }
-} 
+}

@@ -44,36 +44,21 @@ fun SignUpScreen(navController: NavHostController, onSignUp: () -> Unit = {}, on
     val selectedRole = remember { mutableStateOf(roles[0]) }
     val showValidationError = remember { mutableStateOf(false) }
     val isFormValid = name.value.isNotBlank() && email.value.isNotBlank() && password.value.isNotBlank() && confirmPassword.value.isNotBlank() && password.value == confirmPassword.value
-    val showProfileDialog = remember { mutableStateOf(false) }
 
     LaunchedEffect(authState) {
-        // Remove navigation logic from here, will move to onSuccess callback
         if (authState is AuthResult.Success) {
             snackbarHostState.showSnackbar("Account created successfully!")
-            // Navigation will be handled in onSuccess callback
-            viewModel.resetState()
-        }
-        if (authState is AuthResult.Error) {
-            snackbarHostState.showSnackbar((authState as AuthResult.Error).message)
-        }
-    }
-
-    if (showProfileDialog.value) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Signup Successful") },
-            text = { Text("Please complete your profile to continue.") },
-            confirmButton = {
-                Button(onClick = {
-                    showProfileDialog.value = false
-                    navController.navigate(Screen.SkilledProfile.route) {
-                        popUpTo(Screen.SignUp.route) { inclusive = true }
-                    }
-                }) {
-                    Text("Continue")
+            if (selectedRole.value == "Customer") {
+                navController.navigate(Screen.CustomerDashboard.route) {
+                    popUpTo(Screen.SignUp.route) { inclusive = true }
+                }
+            } else {
+                navController.navigate(Screen.SkilledDashboard.route) {
+                    popUpTo(Screen.SignUp.route) { inclusive = true }
                 }
             }
-        )
+            viewModel.resetState()
+        }
     }
 
     Scaffold(
@@ -204,17 +189,7 @@ fun SignUpScreen(navController: NavHostController, onSignUp: () -> Unit = {}, on
                                     email = email.value,
                                     password = password.value,
                                     role = selectedRole.value,
-                                    onSuccess = { role ->
-                                        // Use the role passed from ViewModel for navigation
-                                        if (role == "Customer") {
-                                            navController.navigate(Screen.CustomerDashboard.route) {
-                                                popUpTo(Screen.SignUp.route) { inclusive = true }
-                                            }
-                                        } else {
-                                            showProfileDialog.value = true
-                                        }
-                                        viewModel.resetState()
-                                    },
+                                    onSuccess = onSignUp,
                                     onError = {}
                                 )
                             } else {

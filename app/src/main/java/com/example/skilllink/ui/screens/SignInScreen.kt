@@ -58,25 +58,19 @@ fun SignInScreen(
 
     // Navigation on success
     val lastRole = remember { mutableStateOf("") }
-    val lastProfileComplete = remember { mutableStateOf<Boolean?>(null) }
-    LaunchedEffect(authState, lastRole.value, lastProfileComplete.value) {
-        if (authState is AuthResult.Success && lastRole.value.isNotBlank() && lastProfileComplete.value != null) {
+    LaunchedEffect(authState, lastRole.value) {
+        if (authState is AuthResult.Success && lastRole.value.isNotBlank()) {
             if (lastRole.value == "customer") {
                 navController.navigate(Screen.CustomerDashboard.route) {
                     popUpTo(Screen.SignIn.route) { inclusive = true }
                 }
-            } else if (lastRole.value == "provider" && lastProfileComplete.value == false) {
-                navController.navigate(Screen.SkilledProfile.route) {
-                    popUpTo(Screen.SignIn.route) { inclusive = true }
-                }
-            } else if (lastRole.value == "provider" && lastProfileComplete.value == true) {
+            } else if (lastRole.value == "provider") {
                 navController.navigate(Screen.SkilledDashboard.route) {
                     popUpTo(Screen.SignIn.route) { inclusive = true }
                 }
             }
             viewModel.resetState()
             lastRole.value = ""
-            lastProfileComplete.value = null
         }
     }
 
@@ -177,10 +171,7 @@ fun SignInScreen(
                                 viewModel.signIn(
                                     email = email.value,
                                     password = password.value,
-                                    onSuccess = { role, profileComplete ->
-                                        lastRole.value = role
-                                        lastProfileComplete.value = profileComplete
-                                    },
+                                    onSuccess = { role -> lastRole.value = role },
                                     onError = { /* handled by authState */ }
                                 )
                             } else {
