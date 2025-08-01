@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.example.skilllink.navigation.Screen
 import com.example.skilllink.ui.components.toBrushColor
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -63,12 +64,11 @@ fun SkilledProfileScreen(
     val inputErrorMessage = remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
-    val isFormValid = fullName.value.isNotBlank() && cnic.value.isNotBlank() && phone.value.isNotBlank() && trade.value.isNotBlank() && experience.value.isNotBlank() && address.value.isNotBlank()
+    val isFormValid = fullName.value.isNotBlank() && cnic.value.isNotBlank() && phone.value.isNotBlank() &&
+            trade.value.isNotBlank() && experience.value.isNotBlank() && address.value.isNotBlank()
 
-    // Remove image fields and upload logic
-    // Only keep text fields
     suspend fun saveProfile(): Boolean {
-        try {
+        return try {
             val profileData = hashMapOf(
                 "uid" to userId,
                 "fullName" to fullName.value,
@@ -80,10 +80,13 @@ fun SkilledProfileScreen(
                 "profileComplete" to true,
                 "role" to "provider"
             )
-            firestore.collection("users").document(userId!!).set(profileData as Map<String, Any>, SetOptions.merge()).await()
-            return true
+            firestore.collection("users")
+                .document(userId!!)
+                .set(profileData as Map<String, Any>, SetOptions.merge())
+                .await()
+            true
         } catch (e: Exception) {
-            return false
+            false
         }
     }
 
@@ -117,7 +120,6 @@ fun SkilledProfileScreen(
                 )
                 .padding(innerPadding)
         ) {
-            // Top bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -136,7 +138,6 @@ fun SkilledProfileScreen(
                     Icon(Icons.Filled.MoreVert, contentDescription = "Menu", tint = Color.White)
                 }
             }
-            // Make the form scrollable
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -209,14 +210,15 @@ fun SkilledProfileScreen(
                                 return@Button
                             }
                             isLoading.value = true
-                            showValidationError.value = false
                             coroutineScope.launch {
                                 val success = saveProfile()
                                 isLoading.value = false
                                 if (success) {
                                     snackbarHostState.showSnackbar("Profile saved successfully!")
-                                    navController.navigate(com.example.skilllink.navigation.Screen.SkilledDashboard.route) {
-                                        popUpTo(com.example.skilllink.navigation.Screen.SkilledProfile.route) { inclusive = true }
+                                    navController.navigate(Screen.SkilledDashboard.route) {
+                                        popUpTo(Screen.SkilledProfile.route) {
+                                            inclusive = true
+                                        }
                                     }
                                 } else {
                                     snackbarHostState.showSnackbar("Failed to save profile. Please try again.")
@@ -227,7 +229,11 @@ fun SkilledProfileScreen(
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(25.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Brush.horizontalGradient(listOf(Color(0xFFB31217), Color(0xFF2A0845))).toBrushColor()),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Brush.horizontalGradient(
+                                listOf(Color(0xFFB31217), Color(0xFF2A0845))
+                            ).toBrushColor()
+                        ),
                         enabled = isFormValid && !isLoading.value
                     ) {
                         if (isLoading.value) {
@@ -250,4 +256,4 @@ fun SkilledProfileScreen(
             showInputErrorSnackbar.value = false
         }
     }
-} 
+}

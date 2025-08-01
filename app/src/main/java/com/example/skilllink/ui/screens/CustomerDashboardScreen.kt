@@ -2,28 +2,32 @@ package com.example.skilllink.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.OutlinedTextFieldDefaults
+
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-//import androidx.compose.foundation.layout.FlowColumnScopeInstance.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextFieldDefaults
+
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
+
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,22 +38,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.ElectricalServices
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.FormatPaint
-import androidx.compose.material.icons.filled.Handyman
-import androidx.navigation.NavController
-import androidx.navigation.NavHost
+
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import androidx.lifecycle.viewmodel.compose.viewModel
+
+import coil.compose.AsyncImage
+
 import com.example.skilllink.ui.theme.*
 import com.example.skilllink.viewmodel.ProviderViewModel
-import androidx.compose.runtime.collectAsState
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import coil.compose.AsyncImage
+
 
 //customer dashboard screen
 // Updated ServiceProvider data class to include experience
@@ -94,7 +93,7 @@ fun ProviderListScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = White)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = White)
                 }
                 Text(
                     "Available $offering\nProviders",
@@ -572,10 +571,12 @@ fun SearchScreen(
                 Icon(Icons.Filled.Search, contentDescription = "Search Icon")
             },
             shape = RoundedCornerShape(12.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color(0xFF2A0845),
-                cursorColor = Color(0xFF2A0845)
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor   = Color(0xFF2A0845),
+                unfocusedBorderColor = Color.Gray,           // optional
+                cursorColor          = Color(0xFF2A0845)
             )
+
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -605,7 +606,7 @@ fun SearchScreen(
                                 fontWeight = FontWeight.Medium
                             )
                             Icon(
-                                imageVector = Icons.Filled.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Select",
                                 tint = Color(0xFF2A0845),
                                 modifier = Modifier.graphicsLayer(rotationZ = 180f)
@@ -835,20 +836,25 @@ fun ProfileScreen(onLogout: () -> Unit) {
                         onValueChange = { name = it },
                         label = { Text("Full Name") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = PrimaryRed,
-                            cursorColor = PrimaryRed
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor   = Color(0xFF2A0845),
+                            unfocusedBorderColor = Color.Gray,           // optional
+                            cursorColor          = Color(0xFF2A0845)
                         )
                     )
+
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
                         label = { Text("Email") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = PrimaryRed,
-                            cursorColor = PrimaryRed
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor   = PrimaryRed,
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor          = PrimaryRed,
+                            focusedTextColor     = Color.Black,
+                            unfocusedTextColor   = Color.DarkGray
                         )
                     )
                 }
