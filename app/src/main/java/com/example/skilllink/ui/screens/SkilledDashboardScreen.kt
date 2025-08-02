@@ -59,6 +59,9 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
     var userData by remember { mutableStateOf<Map<String, Any>?>(null) }
     var isLoading by remember { mutableStateOf(true) }
 
+    // Edit profile dialog state
+    var showEditProfileDialog by remember { mutableStateOf(false) }
+
     // Booking requests
     var bookingRequests by remember { mutableStateOf<List<BookingRequest>>(emptyList()) }
     var isLoadingBookings by remember { mutableStateOf(true) }
@@ -826,16 +829,8 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                                         }
                                     },
                                     onEditProfile = {
-                                        // Navigate to profile edit screen
-                                        val userId = FirebaseAuth.getInstance().currentUser?.uid
-                                        if (userId != null) {
-                                            navController.navigate(Screen.SkilledProfile.route)
-                                        } else {
-                                            // Handle the case where userId is null
-                                            coroutineScope.launch {
-                                                snackbarHostState.showSnackbar("Error: User not authenticated. Please sign in again.")
-                                            }
-                                        }
+                                        // Show edit profile dialog instead of navigation
+                                        showEditProfileDialog = true
                                     }
                                 )
                             }
@@ -866,6 +861,38 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                 }
             }
         }
+    }
+
+    // Edit Profile Dialog
+    if (showEditProfileDialog) {
+        SkilledEditProfileDialog(
+            userData = userData,
+            onDismiss = { showEditProfileDialog = false },
+            onSave = { updatedData ->
+                // Update user data in Firestore
+                val auth = FirebaseAuth.getInstance()
+                val firestore = FirebaseFirestore.getInstance()
+                val currentUser = auth.currentUser
+
+                if (currentUser != null) {
+                    firestore.collection("users").document(currentUser.uid)
+                        .update(updatedData)
+                        .addOnSuccessListener {
+                            // Refresh user data
+                            firestore.collection("users").document(currentUser.uid).get()
+                                .addOnSuccessListener { document ->
+                                    userData = document.data
+                                    showEditProfileDialog = false
+                                }
+                        }
+                        .addOnFailureListener {
+                            showEditProfileDialog = false
+                        }
+                } else {
+                    showEditProfileDialog = false
+                }
+            }
+        )
     }
 }
 
@@ -1012,4 +1039,289 @@ fun SkilledProfileTab(
             Text("Log Out", color = Color(0xFF2A0845))
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SkilledEditProfileDialog(
+    userData: Map<String, Any>?,
+    onDismiss: () -> Unit,
+    onSave: (Map<String, Any>) -> Unit
+) {
+    var fullName by remember { mutableStateOf(userData?.get("fullName") as? String ?: userData?.get("name") as? String ?: "") }
+    var email by remember { mutableStateOf(userData?.get("email") as? String ?: "") }
+    var phone by remember { mutableStateOf(userData?.get("phone") as? String ?: userData?.get("phoneNumber") as? String ?: "") }
+    var cnic by remember { mutableStateOf(userData?.get("cnic") as? String ?: "") }
+    var trade by remember { mutableStateOf(userData?.get("trade") as? String ?: "") }
+    var experience by remember { mutableStateOf(userData?.get("experience") as? String ?: userData?.get("yearsOfExperience") as? String ?: "") }
+    var address by remember { mutableStateOf(userData?.get("address") as? String ?: "") }
+    var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var showTradeDropdown by remember { mutableStateOf(false) }
+
+    val trades = listOf("Plumber", "Electrician", "AC Guy", "Painter", "Carpenter")
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        selectedImageUri = uri
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "Edit Profile", fontWeight = FontWeight.Bold, color = Color(0xFF2A0845))
+        },
+        text = {
+            LazyColumn {
+                item {
+                    // Profile Image Section
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(40.dp))
+                                .background(Color(0xFFF5F6FA)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val profileImageUrl = userData?.get("profileImageUrl") as? String
+                            if (selectedImageUri != null) {
+                                // Show selected image
+                                AsyncImage(
+                                    model = selectedImageUri,
+                                    contentDescription = "Profile Image",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else if (profileImageUrl != null) {
+                                // Show profile image from Firebase
+                                AsyncImage(
+                                    model = profileImageUrl,
+                                    contentDescription = "Profile Image",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Filled.Person,
+                                    contentDescription = "Profile Image",
+                                    tint = Color(0xFFB31217),
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A0845)),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Add Photo",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Add Picture", color = Color.White, fontSize = 12.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Full Name
+                    OutlinedTextField(
+                        value = fullName,
+                        onValueChange = { fullName = it },
+                        label = { Text("Full Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF2A0845),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFF2A0845)
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Email
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFB31217),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFFB31217),
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.DarkGray
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Phone
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { 
+                            // Format phone as +92-300-0000000
+                            val digitsOnly = it.filter { char -> char.isDigit() }
+                            val formatted = when {
+                                digitsOnly.length <= 2 -> if (digitsOnly.startsWith("92")) "+$digitsOnly" else digitsOnly
+                                digitsOnly.length <= 5 -> "+${digitsOnly.substring(0, 2)}-${digitsOnly.substring(2)}"
+                                digitsOnly.length <= 12 -> "+${digitsOnly.substring(0, 2)}-${digitsOnly.substring(2, 5)}-${digitsOnly.substring(5)}"
+                                else -> "+${digitsOnly.substring(0, 2)}-${digitsOnly.substring(2, 5)}-${digitsOnly.substring(5, 12)}"
+                            }
+                            if (digitsOnly.length <= 12) phone = formatted
+                        },
+                        label = { Text("Phone Number") },
+                        placeholder = { Text("+92-300-0000000") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF2A0845),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFF2A0845)
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // CNIC
+                    OutlinedTextField(
+                        value = cnic,
+                        onValueChange = { 
+                            // Format CNIC as 00000-0000000-0
+                            val digitsOnly = it.filter { char -> char.isDigit() }
+                            val formatted = when {
+                                digitsOnly.length <= 5 -> digitsOnly
+                                digitsOnly.length <= 12 -> "${digitsOnly.substring(0, 5)}-${digitsOnly.substring(5)}"
+                                digitsOnly.length <= 13 -> "${digitsOnly.substring(0, 5)}-${digitsOnly.substring(5, 12)}-${digitsOnly.substring(12)}"
+                                else -> "${digitsOnly.substring(0, 5)}-${digitsOnly.substring(5, 12)}-${digitsOnly.substring(12, 13)}"
+                            }
+                            if (digitsOnly.length <= 13) cnic = formatted
+                        },
+                        label = { Text("CNIC") },
+                        placeholder = { Text("00000-0000000-0") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF2A0845),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFF2A0845)
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Trade Dropdown
+                    Box {
+                        OutlinedTextField(
+                            value = trade,
+                            onValueChange = { },
+                            label = { Text("Trade or Skill") },
+                            trailingIcon = {
+                                IconButton(onClick = { showTradeDropdown = !showTradeDropdown }) {
+                                    Icon(
+                                        if (showTradeDropdown) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = Color(0xFF2A0845)
+                                    )
+                                }
+                            },
+                            readOnly = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showTradeDropdown = !showTradeDropdown },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF2A0845),
+                                unfocusedBorderColor = Color.Gray,
+                                cursorColor = Color(0xFF2A0845)
+                            )
+                        )
+                        
+                        DropdownMenu(
+                            expanded = showTradeDropdown,
+                            onDismissRequest = { showTradeDropdown = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            trades.forEach { tradeOption ->
+                                DropdownMenuItem(
+                                    text = { Text(tradeOption) },
+                                    onClick = {
+                                        trade = tradeOption
+                                        showTradeDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Experience
+                    OutlinedTextField(
+                        value = experience,
+                        onValueChange = { 
+                            // Only allow numbers
+                            val digitsOnly = it.filter { char -> char.isDigit() }
+                            if (digitsOnly.length <= 2) experience = digitsOnly
+                        },
+                        label = { Text("Years of Experience") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF2A0845),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFF2A0845)
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Address
+                    OutlinedTextField(
+                        value = address,
+                        onValueChange = { address = it },
+                        label = { Text("Address") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 3,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF2A0845),
+                            unfocusedBorderColor = Color.Gray,
+                            cursorColor = Color(0xFF2A0845)
+                        )
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { 
+                    // Save changes to Firebase
+                    val updates = hashMapOf<String, Any>(
+                        "fullName" to fullName,
+                        "name" to fullName, // Keep both for compatibility
+                        "email" to email,
+                        "phone" to phone,
+                        "phoneNumber" to phone, // Keep both for compatibility
+                        "cnic" to cnic,
+                        "trade" to trade,
+                        "experience" to experience,
+                        "yearsOfExperience" to experience, // Keep both for compatibility
+                        "address" to address
+                    )
+                    onSave(updates)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB31217))
+            ) {
+                Text("Save", color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color(0xFFB31217))
+            }
+        }
+    )
 }

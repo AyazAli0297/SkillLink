@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -522,63 +523,76 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    // Settings menu
-                    var showSettingsMenu by remember { mutableStateOf(false) }
-
-                    Box {
-                        IconButton(onClick = { showSettingsMenu = true }) {
-                            Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+                    
+                    // Wallet and Settings icons
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Wallet icon
+                        IconButton(onClick = { showWalletScreen.value = true }) {
+                            Icon(Icons.Filled.AccountBalanceWallet, contentDescription = "Wallet", tint = Color.White)
                         }
 
-                        DropdownMenu(
-                            expanded = showSettingsMenu,
-                            onDismissRequest = { showSettingsMenu = false },
-                            modifier = Modifier.background(Color.White)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("App Settings") },
-                                onClick = {
-                                    showSettingsMenu = false
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        "App Settings clicked",
-                                        android.widget.Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Filled.Settings, contentDescription = null)
-                                }
-                            )
 
-                            DropdownMenuItem(
-                                text = { Text("Help & Support") },
-                                onClick = {
-                                    showSettingsMenu = false
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        "Help & Support clicked",
-                                        android.widget.Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null)
-                                }
-                            )
+                        // Settings menu
+                        var showSettingsMenu by remember { mutableStateOf(false) }
 
-                            DropdownMenuItem(
-                                text = { Text("About") },
-                                onClick = {
-                                    showSettingsMenu = false
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        "About clicked",
-                                        android.widget.Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Filled.Info, contentDescription = null)
-                                }
-                            )
+                        Box {
+                            IconButton(onClick = { showSettingsMenu = true }) {
+                                Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+                            }
+
+                            DropdownMenu(
+                                expanded = showSettingsMenu,
+                                onDismissRequest = { showSettingsMenu = false },
+                                modifier = Modifier.background(Color.White)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("App Settings") },
+                                    onClick = {
+                                        showSettingsMenu = false
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "App Settings clicked",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Filled.Settings, contentDescription = null)
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = { Text("Help & Support") },
+                                    onClick = {
+                                        showSettingsMenu = false
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "Help & Support clicked",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null)
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = { Text("About") },
+                                    onClick = {
+                                        showSettingsMenu = false
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "About clicked",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Filled.Info, contentDescription = null)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -602,22 +616,10 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                             ) {
                                 Text("Quick Actions", color = Color(0xFF2A0845), fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 24.dp))
 
+                                // Updated Quick Actions - Only View Bookings and Contact Support
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Button(
                                         onClick = { 
-                                            // Navigate to search tab
-                                            selectedTab.value = 1
-                                        }, 
-                                        modifier = Modifier.weight(1f).height(48.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = blue)
-                                    ) {
-                                        Text("Book a Service", color = Color.White, fontWeight = FontWeight.SemiBold)
-                                    }
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Button(
-                                        onClick = { 
-                                            // Navigate to a dedicated bookings view (using tab 3)
                                             selectedTab.value = 3
                                         }, 
                                         modifier = Modifier.weight(1f).height(48.dp),
@@ -626,45 +628,30 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                     ) {
                                         Text("View Bookings", color = Color(0xFF2A0845), fontWeight = FontWeight.SemiBold)
                                     }
-                                }
-
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Button(
-                                        onClick = { }, modifier = Modifier.weight(1f).height(48.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = lightGray)
-                                    ) {
-                                        Text("Browse Pros", color = Color(0xFF2A0845), fontWeight = FontWeight.SemiBold)
-                                    }
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Button(
                                         onClick = { 
-                                            showWalletScreen.value = true
-                                        }, modifier = Modifier.weight(1f).height(48.dp),
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                "Contact Support feature coming soon!",
+                                                android.widget.Toast.LENGTH_SHORT
+                                            ).show()
+                                        }, 
+                                        modifier = Modifier.weight(1f).height(48.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = lightGray)
                                     ) {
-                                        Text("Wallet", color = Color(0xFF2A0845), fontWeight = FontWeight.SemiBold)
+                                        Text("Contact Support", color = Color(0xFF2A0845), fontWeight = FontWeight.SemiBold)
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(
-                                    onClick = { }, modifier = Modifier.fillMaxWidth().height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = lightGray)
-                                ) {
-                                    Text("Contact Support", color = Color(0xFF2A0845), fontWeight = FontWeight.SemiBold)
-                                }
-
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(32.dp))
                                 Text(
                                     text = "Our Offerings",
                                     color = Color(0xFF2A0845),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp,
-                                    modifier = Modifier.padding(bottom = 12.dp)
+                                    modifier = Modifier.padding(bottom = 16.dp)
                                 )
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -683,10 +670,10 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                             modifier = Modifier
                                                 .size(56.dp)
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(Color(0xFFB31217)),
+                                                .background(Color(0xFFF5F6FA)),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Icon(Icons.Filled.Build, contentDescription = "Plumber", tint = Color.White, modifier = Modifier.size(32.dp))
+                                            Icon(Icons.Filled.Build, contentDescription = "Plumber", tint = Color(0xFF2A0845), modifier = Modifier.size(32.dp))
                                         }
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text("Plumber", color = Color(0xFF2A0845), fontSize = 12.sp, textAlign = TextAlign.Center)
@@ -705,10 +692,10 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                             modifier = Modifier
                                                 .size(56.dp)
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(Color(0xFF2A0845)),
+                                                .background(Color(0xFFF5F6FA)),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Icon(Icons.Filled.ElectricalServices, contentDescription = "Electrician", tint = Color.White, modifier = Modifier.size(32.dp))
+                                            Icon(Icons.Filled.ElectricalServices, contentDescription = "Electrician", tint = Color(0xFF2A0845), modifier = Modifier.size(32.dp))
                                         }
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text("Electrician", color = Color(0xFF2A0845), fontSize = 12.sp, textAlign = TextAlign.Center)
@@ -727,10 +714,10 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                             modifier = Modifier
                                                 .size(56.dp)
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(Color(0xFF1877F3)),
+                                                .background(Color(0xFFF5F6FA)),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Icon(Icons.Filled.AcUnit, contentDescription = "AC Guy", tint = Color.White, modifier = Modifier.size(32.dp))
+                                            Icon(Icons.Filled.AcUnit, contentDescription = "AC Guy", tint = Color(0xFF2A0845), modifier = Modifier.size(32.dp))
                                         }
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text("AC Guy", color = Color(0xFF2A0845), fontSize = 12.sp, textAlign = TextAlign.Center)
@@ -771,10 +758,10 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                             modifier = Modifier
                                                 .size(56.dp)
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(Color(0xFF2A0845)),
+                                                .background(Color(0xFFF5F6FA)),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Icon(Icons.Filled.Handyman, contentDescription = "Carpenter", tint = Color.White, modifier = Modifier.size(32.dp))
+                                            Icon(Icons.Filled.Handyman, contentDescription = "Carpenter", tint = Color(0xFF2A0845), modifier = Modifier.size(32.dp))
                                         }
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text("Carpenter", color = Color(0xFF2A0845), fontSize = 12.sp, textAlign = TextAlign.Center)
@@ -782,13 +769,13 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                 }
 
                                 // Recent Activity Section
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(32.dp))
                                 Text(
                                     text = "Recent Activity",
                                     color = Color(0xFF2A0845),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp,
-                                    modifier = Modifier.padding(bottom = 12.dp)
+                                    modifier = Modifier.padding(bottom = 16.dp)
                                 )
 
                                 if (isLoadingBookings) {
@@ -831,7 +818,7 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                         }
                                     }
                                 } else {
-                                    // Show the most recent 2 bookings
+                                    // Show the most recent 2 bookings in a scrollable LazyColumn
                                     LazyColumn(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -882,46 +869,10 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                                     )
                                                     Spacer(modifier = Modifier.height(4.dp))
                                                     Text(
-                                                        "Trade: ${booking.trade}",
-                                                        fontSize = 14.sp,
-                                                        color = Color.Gray
-                                                    )
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
                                                         "Date: ${booking.date} at ${booking.time}",
-                                                        fontSize = 14.sp,
+                                                        fontSize = 12.sp,
                                                         color = Color.Gray
                                                     )
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        "Price: ${booking.price}",
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = Color(0xFF2A0845)
-                                                    )
-
-                                                    if (booking.status == "Accepted") {
-                                                        Spacer(modifier = Modifier.height(8.dp))
-                                                        Button(
-                                                            onClick = {
-                                                                // Contact provider logic
-                                                                val intent = Intent(Intent.ACTION_DIAL).apply {
-                                                                    data = Uri.parse("tel:${booking.skilledPhone}")
-                                                                }
-                                                                context.startActivity(intent)
-                                                            },
-                                                            modifier = Modifier.fillMaxWidth(),
-                                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F3))
-                                                        ) {
-                                                            Icon(
-                                                                Icons.Filled.Phone,
-                                                                contentDescription = "Call",
-                                                                modifier = Modifier.size(16.dp)
-                                                            )
-                                                            Spacer(modifier = Modifier.width(4.dp))
-                                                            Text("Contact Provider")
-                                                        }
-                                                    }
                                                 }
                                             }
                                         }
