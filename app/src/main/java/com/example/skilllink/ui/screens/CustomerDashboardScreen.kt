@@ -3,6 +3,7 @@ package com.example.skilllink.ui.screens
 import android.content.Intent
 import android.net.Uri
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -18,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 
 import androidx.compose.material3.*
@@ -34,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,6 +51,7 @@ import coil.compose.AsyncImage
 
 import com.example.skilllink.ui.theme.*
 import com.example.skilllink.viewmodel.ProviderViewModel
+import com.example.skilllink.data.models.*
 
 
 //customer dashboard screen
@@ -61,15 +65,41 @@ data class ServiceProvider(
     val address: String = ""
 )
 
+// Data class for customer bookings
+data class CustomerBooking(
+    val id: String = "",
+    val skilledName: String = "",
+    val service: String = "",
+    val status: String = "Pending", // Pending, Accepted, Rejected, Completed
+    val price: String = "",
+    val address: String = "",
+    val date: String = "",
+    val time: String = "",
+    val skilledPhone: String = "",
+    val trade: String = "",
+    val paymentStatus: String = "Unpaid", // Unpaid, Paid, Refunded
+    val transactionId: String = "",
+    val paymentMethod: String = "",
+    val amount: Double = 0.0
+)
+
 @Composable
 fun ProviderListScreen(
     offering: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onBookingSuccess: () -> Unit = {},
+    navController: NavHostController? = null,
+    paymentAmount: MutableState<Double>,
+    paymentService: MutableState<String>,
+    paymentProviderName: MutableState<String>,
+    paymentBookingData: MutableState<Map<String, Any>>,
+    showPaymentScreen: MutableState<Boolean>
 ) {
     val providerViewModel: ProviderViewModel = viewModel()
     val providers by providerViewModel.providers.collectAsState()
     val loading by providerViewModel.loading.collectAsState()
-    
+    val context = LocalContext.current
+
     LaunchedEffect(offering) {
         providerViewModel.fetchProvidersByTrade(offering)
     }
@@ -104,7 +134,7 @@ fun ProviderListScreen(
                 )
             }
         }
-        
+
         // Card
         Box(
             modifier = Modifier
@@ -154,6 +184,7 @@ fun ProviderListScreen(
                         .fillMaxSize()
                         .padding(horizontal = 24.dp, vertical = 32.dp)
                 ) {
+                    val context = LocalContext.current
                     LazyColumn {
                         items(providers) { provider ->
                             Card(
@@ -192,7 +223,34 @@ fun ProviderListScreen(
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                         Button(
-                                            onClick = { /* TODO: Handle repairing booking */ },
+                                            onClick = { 
+                                                // Launch payment for repairing service
+                                                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                                                val currentUser = auth.currentUser
+
+                                                if (currentUser != null) {
+                                                    // Set payment data
+                                                    paymentAmount.value = 800.0
+                                                    paymentService.value = "Repairing Service"
+                                                    paymentProviderName.value = provider.fullName
+                                                    paymentBookingData.value = mapOf(
+                                                        "customerId" to currentUser.uid,
+                                                        "customerName" to (currentUser.displayName ?: "Customer"),
+                                                        "customerPhone" to "",
+                                                        "skilledId" to provider.uid,
+                                                        "skilledName" to provider.fullName,
+                                                        "skilledPhone" to provider.phone,
+                                                        "service" to "Repairing Service",
+                                                        "status" to "Pending",
+                                                        "date" to java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date()),
+                                                        "time" to java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date()),
+                                                        "address" to provider.address,
+                                                        "trade" to provider.trade
+                                                    )
+                                                    // Show payment screen
+                                                    showPaymentScreen.value = true
+                                                }
+                                            },
                                             shape = RoundedCornerShape(20),
                                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
                                             modifier = Modifier.weight(1f)
@@ -201,7 +259,34 @@ fun ProviderListScreen(
                                         }
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Button(
-                                            onClick = { /* TODO: Handle replacement booking */ },
+                                            onClick = { 
+                                                // Launch payment for replacement service
+                                                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                                                val currentUser = auth.currentUser
+
+                                                if (currentUser != null) {
+                                                    // Set payment data
+                                                    paymentAmount.value = 2000.0
+                                                    paymentService.value = "Replacement Service"
+                                                    paymentProviderName.value = provider.fullName
+                                                    paymentBookingData.value = mapOf(
+                                                        "customerId" to currentUser.uid,
+                                                        "customerName" to (currentUser.displayName ?: "Customer"),
+                                                        "customerPhone" to "",
+                                                        "skilledId" to provider.uid,
+                                                        "skilledName" to provider.fullName,
+                                                        "skilledPhone" to provider.phone,
+                                                        "service" to "Replacement Service",
+                                                        "status" to "Pending",
+                                                        "date" to java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date()),
+                                                        "time" to java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date()),
+                                                        "address" to provider.address,
+                                                        "trade" to provider.trade
+                                                    )
+                                                    // Show payment screen
+                                                    showPaymentScreen.value = true
+                                                }
+                                            },
                                             shape = RoundedCornerShape(20),
                                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
                                             modifier = Modifier.weight(1f)
@@ -211,7 +296,34 @@ fun ProviderListScreen(
                                     }
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Button(
-                                        onClick = { /* TODO: Handle general booking */ },
+                                        onClick = { 
+                                            // Launch payment for general service
+                                            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                                            val currentUser = auth.currentUser
+
+                                            if (currentUser != null) {
+                                                // Set payment data
+                                                paymentAmount.value = 1000.0
+                                                paymentService.value = "General ${provider.trade} Service"
+                                                paymentProviderName.value = provider.fullName
+                                                paymentBookingData.value = mapOf(
+                                                    "customerId" to currentUser.uid,
+                                                    "customerName" to (currentUser.displayName ?: "Customer"),
+                                                    "customerPhone" to "",
+                                                    "skilledId" to provider.uid,
+                                                    "skilledName" to provider.fullName,
+                                                    "skilledPhone" to provider.phone,
+                                                    "service" to "General ${provider.trade} Service",
+                                                    "status" to "Pending",
+                                                    "date" to java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date()),
+                                                    "time" to java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date()),
+                                                    "address" to provider.address,
+                                                    "trade" to provider.trade
+                                                )
+                                                // Show payment screen
+                                                showPaymentScreen.value = true
+                                            }
+                                        },
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(25.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed)
@@ -228,15 +340,6 @@ fun ProviderListScreen(
     }
 }
 
-class LocalContext {
-    object current {
-        fun startActivity(intent: Intent) {
-
-        }
-
-    }
-
-}
 
 @Composable
 fun CustomerDashboardScreen(navController: NavHostController = rememberNavController()) {
@@ -244,9 +347,103 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
     val blue = Color(0xFF1877F3)
     val lightGray = Color(0xFFF5F6FA)
     val gradientColors = listOf(Color(0xFFB31217), Color(0xFF2A0845))
+    val context = LocalContext.current
 
     val showProviderList = remember { mutableStateOf(false) }
     val selectedService = remember { mutableStateOf("") }
+    
+    // Payment state
+    val showPaymentScreen = remember { mutableStateOf(false) }
+    val paymentAmount = remember { mutableStateOf(0.0) }
+    val paymentService = remember { mutableStateOf("") }
+    val paymentProviderName = remember { mutableStateOf("") }
+    val paymentBookingData = remember { mutableStateOf<Map<String, Any>>(emptyMap()) }
+    
+    // Wallet and transaction state
+    val showWalletScreen = remember { mutableStateOf(false) }
+    val showTransactionHistory = remember { mutableStateOf(false) }
+
+    // Customer bookings state
+    var customerBookings by remember { mutableStateOf<List<CustomerBooking>>(emptyList()) }
+    var isLoadingBookings by remember { mutableStateOf(true) }
+    var refreshBookings by remember { mutableStateOf(0) }
+
+    // Function to fetch bookings
+    fun fetchCustomerBookings() {
+        isLoadingBookings = true
+        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+        val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            firestore.collection("bookings")
+                .whereEqualTo("customerId", currentUser.uid)
+                .get()
+                .addOnSuccessListener { documents ->
+                    val fetchedBookings = mutableListOf<CustomerBooking>()
+                    for (document in documents) {
+                        val booking = CustomerBooking(
+                            id = document.id,
+                            skilledName = document.getString("skilledName") ?: "",
+                            service = document.getString("service") ?: "",
+                            status = document.getString("status") ?: "Pending",
+                            price = document.getString("price") ?: "",
+                            address = document.getString("address") ?: "",
+                            date = document.getString("date") ?: "",
+                            time = document.getString("time") ?: "",
+                            skilledPhone = document.getString("skilledPhone") ?: "",
+                            trade = document.getString("trade") ?: "",
+                            paymentStatus = document.getString("paymentStatus") ?: "Unpaid",
+                            transactionId = document.getString("transactionId") ?: "",
+                            paymentMethod = document.getString("paymentMethod") ?: "",
+                            amount = document.getDouble("amount") ?: 0.0
+                        )
+                        fetchedBookings.add(booking)
+                    }
+                    customerBookings = fetchedBookings
+                    isLoadingBookings = false
+                }
+                .addOnFailureListener {
+                    customerBookings = emptyList()
+                    isLoadingBookings = false
+                }
+        } else {
+            isLoadingBookings = false
+        }
+    }
+
+    // Fetch customer bookings from Firestore
+    LaunchedEffect(refreshBookings) {
+        fetchCustomerBookings()
+    }
+
+    // Handle back button navigation
+    BackHandler {
+        when {
+            showTransactionHistory.value -> {
+                showTransactionHistory.value = false
+            }
+            showWalletScreen.value -> {
+                showWalletScreen.value = false
+            }
+            showPaymentScreen.value -> {
+                showPaymentScreen.value = false
+            }
+            showProviderList.value -> {
+                showProviderList.value = false
+            }
+            selectedTab.value == 3 -> {
+                selectedTab.value = 0
+            }
+            selectedTab.value != 0 -> {
+                selectedTab.value = 0
+            }
+            else -> {
+                // If we're on the main home tab, let the system handle the back press (exit app)
+                // This is the default behavior when BackHandler is not handled
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -259,11 +456,55 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                 )
             )
     ) {
-        if (showProviderList.value) {
+        if (showTransactionHistory.value) {
+            TransactionHistoryScreen(
+                onBack = { showTransactionHistory.value = false }
+            )
+        } else if (showWalletScreen.value) {
+            WalletScreen(
+                onBack = { showWalletScreen.value = false },
+                onTransactionHistory = { 
+                    showWalletScreen.value = false
+                    showTransactionHistory.value = true 
+                }
+            )
+        } else if (showPaymentScreen.value) {
+            PaymentScreen(
+                amount = paymentAmount.value,
+                service = paymentService.value,
+                providerName = paymentProviderName.value,
+                bookingData = paymentBookingData.value,
+                onBack = { showPaymentScreen.value = false },
+                onPaymentSuccess = { 
+                    showPaymentScreen.value = false
+                    refreshBookings++ // Refresh bookings when payment is successful
+                    android.widget.Toast.makeText(
+                        context,
+                        "Payment successful! Booking confirmed.",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                },
+                onPaymentFailed = { error ->
+                    showPaymentScreen.value = false
+                    android.widget.Toast.makeText(
+                        context,
+                        "Payment failed: $error",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+            )
+        } else if (showProviderList.value) {
             ProviderListScreen(
                 offering = selectedService.value,
                 onBack = { showProviderList.value = false },
-
+                onBookingSuccess = { 
+                    refreshBookings++ // Refresh bookings when a new booking is made
+                },
+                paymentAmount = paymentAmount,
+                paymentService = paymentService,
+                paymentProviderName = paymentProviderName,
+                paymentBookingData = paymentBookingData,
+                showPaymentScreen = showPaymentScreen
             )
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -281,8 +522,64 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = { /* Settings */ }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+                    // Settings menu
+                    var showSettingsMenu by remember { mutableStateOf(false) }
+
+                    Box {
+                        IconButton(onClick = { showSettingsMenu = true }) {
+                            Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+                        }
+
+                        DropdownMenu(
+                            expanded = showSettingsMenu,
+                            onDismissRequest = { showSettingsMenu = false },
+                            modifier = Modifier.background(Color.White)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("App Settings") },
+                                onClick = {
+                                    showSettingsMenu = false
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "App Settings clicked",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Filled.Settings, contentDescription = null)
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Help & Support") },
+                                onClick = {
+                                    showSettingsMenu = false
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Help & Support clicked",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null)
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("About") },
+                                onClick = {
+                                    showSettingsMenu = false
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "About clicked",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Filled.Info, contentDescription = null)
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -307,7 +604,11 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
 
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                     Button(
-                                        onClick = { }, modifier = Modifier.weight(1f).height(48.dp),
+                                        onClick = { 
+                                            // Navigate to search tab
+                                            selectedTab.value = 1
+                                        }, 
+                                        modifier = Modifier.weight(1f).height(48.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = blue)
                                     ) {
@@ -315,7 +616,11 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Button(
-                                        onClick = { }, modifier = Modifier.weight(1f).height(48.dp),
+                                        onClick = { 
+                                            // Navigate to a dedicated bookings view (using tab 3)
+                                            selectedTab.value = 3
+                                        }, 
+                                        modifier = Modifier.weight(1f).height(48.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = lightGray)
                                     ) {
@@ -334,7 +639,9 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Button(
-                                        onClick = { }, modifier = Modifier.weight(1f).height(48.dp),
+                                        onClick = { 
+                                            showWalletScreen.value = true
+                                        }, modifier = Modifier.weight(1f).height(48.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = lightGray)
                                     ) {
@@ -473,6 +780,153 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                         Text("Carpenter", color = Color(0xFF2A0845), fontSize = 12.sp, textAlign = TextAlign.Center)
                                     }
                                 }
+
+                                // Recent Activity Section
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Text(
+                                    text = "Recent Activity",
+                                    color = Color(0xFF2A0845),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+
+                                if (isLoadingBookings) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(100.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(color = Color(0xFFB31217))
+                                    }
+                                } else if (customerBookings.isEmpty()) {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        elevation = CardDefaults.cardElevation(4.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F6FA))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(24.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Info,
+                                                contentDescription = "No Activity",
+                                                tint = Color.Gray,
+                                                modifier = Modifier.size(48.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                "No recent activity",
+                                                color = Color.Gray,
+                                                fontSize = 16.sp,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    // Show the most recent 2 bookings
+                                    LazyColumn(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 300.dp) // Limit height to prevent layout issues
+                                    ) {
+                                        items(customerBookings.take(2)) { booking ->
+                                            Card(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 8.dp),
+                                                shape = RoundedCornerShape(16.dp),
+                                                elevation = CardDefaults.cardElevation(4.dp),
+                                                colors = CardDefaults.cardColors(containerColor = Color.White)
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(16.dp)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween
+                                                    ) {
+                                                        Text(
+                                                            booking.service,
+                                                            fontSize = 16.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color(0xFF2A0845),
+                                                            modifier = Modifier.weight(1f)
+                                                        )
+                                                        Text(
+                                                            booking.status,
+                                                            fontSize = 14.sp,
+                                                            color = when(booking.status) {
+                                                                "Pending" -> Color(0xFFFFA500)
+                                                                "Accepted" -> Color(0xFF4CAF50)
+                                                                "Completed" -> Color(0xFF2196F3)
+                                                                "Rejected" -> Color(0xFFFF5722)
+                                                                else -> Color.Gray
+                                                            }
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        "Provider: ${booking.skilledName}",
+                                                        fontSize = 14.sp,
+                                                        color = Color.Black
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        "Trade: ${booking.trade}",
+                                                        fontSize = 14.sp,
+                                                        color = Color.Gray
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        "Date: ${booking.date} at ${booking.time}",
+                                                        fontSize = 14.sp,
+                                                        color = Color.Gray
+                                                    )
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        "Price: ${booking.price}",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color(0xFF2A0845)
+                                                    )
+
+                                                    if (booking.status == "Accepted") {
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        Button(
+                                                            onClick = {
+                                                                // Contact provider logic
+                                                                val intent = Intent(Intent.ACTION_DIAL).apply {
+                                                                    data = Uri.parse("tel:${booking.skilledPhone}")
+                                                                }
+                                                                context.startActivity(intent)
+                                                            },
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F3))
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Filled.Phone,
+                                                                contentDescription = "Call",
+                                                                modifier = Modifier.size(16.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Text("Contact Provider")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -509,35 +963,57 @@ fun CustomerDashboardScreen(navController: NavHostController = rememberNavContro
                                 val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
                                 auth.signOut()
                                 // Navigate to signin screen
-                                navController.navigate("signin") {
-                                    popUpTo(0) { inclusive = true }
+                                navController.navigate(com.example.skilllink.navigation.Screen.SignIn.route) {
+                                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                    launchSingleTop = true
                                 }
                             })
 
                         }
                     }
+
+                    3 -> {
+                        // Bookings Screen
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
+                                .background(Color.White)
+                        ) {
+                            BookingsScreen(
+                                bookings = customerBookings,
+                                isLoading = isLoadingBookings,
+                                onRefresh = { refreshBookings++ },
+                                onBack = { selectedTab.value = 0 },
+                                context = context
+                            )
+                        }
+                    }
                 }
 
                 // Bottom Navigation
-                NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-                    NavigationBarItem(
-                        selected = selectedTab.value == 0,
-                        onClick = { selectedTab.value = 0 },
-                        icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-                        label = { Text("Home") }
-                    )
-                    NavigationBarItem(
-                        selected = selectedTab.value == 1,
-                        onClick = { selectedTab.value = 1 },
-                        icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
-                        label = { Text("Search") }
-                    )
-                    NavigationBarItem(
-                        selected = selectedTab.value == 2,
-                        onClick = { selectedTab.value = 2 },
-                        icon = { Icon(Icons.Filled.Person, contentDescription = "Profile") },
-                        label = { Text("Profile") }
-                    )
+                if (selectedTab.value != 3) { // Hide bottom navigation when in bookings screen
+                    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
+                        NavigationBarItem(
+                            selected = selectedTab.value == 0,
+                            onClick = { selectedTab.value = 0 },
+                            icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
+                            label = { Text("Home") }
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab.value == 1,
+                            onClick = { selectedTab.value = 1 },
+                            icon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+                            label = { Text("Search") }
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab.value == 2,
+                            onClick = { selectedTab.value = 2 },
+                            icon = { Icon(Icons.Filled.Person, contentDescription = "Profile") },
+                            label = { Text("Profile") }
+                        )
+                    }
                 }
             }
         }
@@ -635,19 +1111,19 @@ fun ProfileScreen(onLogout: () -> Unit) {
     var isLoading by remember { mutableStateOf(true) }
     var profileImageUrl by remember { mutableStateOf<String?>(null) }
     var selectedImageUri by remember { mutableStateOf<android.net.Uri?>(null) }
-    
+
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedImageUri = uri
     }
-    
+
     // Fetch current user data
     LaunchedEffect(Unit) {
         val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
         val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-        
+
         val currentUser = auth.currentUser
         if (currentUser != null) {
             firestore.collection("users").document(currentUser.uid).get()
@@ -714,7 +1190,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     modifier = Modifier.size(64.dp)
                 )
             }
-            
+
             // Camera icon overlay
             Box(
                 modifier = Modifier
@@ -734,7 +1210,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         if (isLoading) {
             CircularProgressIndicator(color = PrimaryRed)
             Spacer(modifier = Modifier.height(16.dp))
@@ -828,9 +1304,9 @@ fun ProfileScreen(onLogout: () -> Unit) {
                             Text("Add Picture", color = White, fontSize = 12.sp)
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
@@ -867,7 +1343,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                         val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                         val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
                         val currentUser = auth.currentUser
-                        
+
                         if (currentUser != null) {
                             // First upload image if selected
                             if (selectedImageUri != null) {
@@ -879,6 +1355,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                             // Update Firestore with image URL and other data
                                             val updates = hashMapOf<String, Any>(
                                                 "name" to name,
+                                                "fullName" to name, // Keep both for compatibility
                                                 "email" to email,
                                                 "profileImageUrl" to downloadUri.toString()
                                             )
@@ -898,6 +1375,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                         // If image upload fails, still save other data
                                         val updates = hashMapOf<String, Any>(
                                             "name" to name,
+                                            "fullName" to name, // Keep both for compatibility
                                             "email" to email
                                         )
                                         firestore.collection("users").document(currentUser.uid)
@@ -913,6 +1391,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                 // No image selected, just update text data
                                 val updates = hashMapOf<String, Any>(
                                     "name" to name,
+                                    "fullName" to name, // Keep both for compatibility
                                     "email" to email
                                 )
                                 firestore.collection("users").document(currentUser.uid)
@@ -939,5 +1418,193 @@ fun ProfileScreen(onLogout: () -> Unit) {
                 }
             }
         )
+    }
+}
+
+@Composable
+fun BookingsScreen(
+    bookings: List<CustomerBooking>,
+    isLoading: Boolean,
+    onRefresh: () -> Unit,
+    onBack: () -> Unit,
+    context: android.content.Context
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+    ) {
+        // Header with back button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF2A0845))
+                }
+                Text(
+                    "My Bookings",
+                    color = Color(0xFF2A0845),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            IconButton(onClick = onRefresh) {
+                Icon(Icons.Filled.Refresh, contentDescription = "Refresh", tint = Color(0xFF2A0845))
+            }
+        }
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color(0xFFB31217))
+            }
+        } else if (bookings.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.BookmarkBorder,
+                    contentDescription = "No Bookings",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(96.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "No bookings yet",
+                    color = Color(0xFF2A0845),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Your bookings will appear here once you book a service",
+                    color = Color.Gray,
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn {
+                items(bookings) { booking ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    booking.service,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2A0845),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    booking.status,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = when(booking.status) {
+                                        "Pending" -> Color(0xFFFFA500)
+                                        "Accepted" -> Color(0xFF4CAF50)
+                                        "Completed" -> Color(0xFF2196F3)
+                                        "Rejected" -> Color(0xFFFF5722)
+                                        else -> Color.Gray
+                                    },
+                                    modifier = Modifier
+                                        .background(
+                                            when(booking.status) {
+                                                "Pending" -> Color(0xFFFFA500).copy(alpha = 0.1f)
+                                                "Accepted" -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+                                                "Completed" -> Color(0xFF2196F3).copy(alpha = 0.1f)
+                                                "Rejected" -> Color(0xFFFF5722).copy(alpha = 0.1f)
+                                                else -> Color.Gray.copy(alpha = 0.1f)
+                                            },
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "Provider: ${booking.skilledName}",
+                                        fontSize = 14.sp,
+                                        color = Color.Black
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "Trade: ${booking.trade}",
+                                        fontSize = 14.sp,
+                                        color = Color.Gray
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "Date: ${booking.date} at ${booking.time}",
+                                        fontSize = 14.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                                
+                                Text(
+                                    booking.price,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2A0845)
+                                )
+                            }
+                            
+                            if (booking.status == "Accepted") {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = {
+                                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                                            data = Uri.parse("tel:${booking.skilledPhone}")
+                                        }
+                                        context.startActivity(intent)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F3))
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Phone,
+                                        contentDescription = "Call",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Contact Provider")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

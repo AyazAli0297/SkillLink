@@ -19,6 +19,7 @@ sealed class Screen(val route: String) {
     object CustomerDashboard : Screen("customer_dashboard")
     object SkilledProfile    : Screen("skilled_profile")
     object SkilledDashboard  : Screen("skilled_dashboard")
+    object Payment           : Screen("payment")
 }
 
 @Composable
@@ -42,14 +43,16 @@ fun AppNavGraph(
             SignInScreen(
                 navController = navController,
                 onSignUp       = { navController.navigate(Screen.SignUp.route) },
-                onForgotPassword = { /* TODO: Handle forgot password */ }
+                onForgotPassword = { 
+                    // This will be handled in the SignInScreen component
+                }
             )
         }
 
         composable(Screen.SignUp.route) {
             SignUpScreen(
                 navController = navController,
-                onSignUp      = { navController.navigate(Screen.SkilledProfile.route) },
+                onSignUp      = { /* Navigation is handled in SignUpScreen.kt based on role */ },
                 onSignIn      = { navController.navigate(Screen.SignIn.route) }
             )
         }
@@ -72,7 +75,7 @@ fun AppNavGraph(
         }
 
         composable(Screen.SkilledDashboard.route) {
-            SkilledDashboardScreen()
+            SkilledDashboardScreen(navController)
         }
     }
 }

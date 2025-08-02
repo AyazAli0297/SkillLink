@@ -63,13 +63,14 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
     var bookingRequests by remember { mutableStateOf<List<BookingRequest>>(emptyList()) }
     var isLoadingBookings by remember { mutableStateOf(true) }
 
-    // Fetch user data
+    // Fetch user data and booking requests
     LaunchedEffect(Unit) {
         val auth = FirebaseAuth.getInstance()
         val firestore = FirebaseFirestore.getInstance()
 
         val currentUser = auth.currentUser
         if (currentUser != null) {
+            // Fetch user data
             firestore.collection("users").document(currentUser.uid).get()
                 .addOnSuccessListener { document ->
                     if (document != null && document.exists()) {
@@ -81,44 +82,35 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                     isLoading = false
                 }
 
-            // Fetch booking requests (this would be replaced with actual implementation)
-            // In a real app, you'd filter by the skilled person's ID and trade
-            bookingRequests = listOf(
-                BookingRequest(
-                    id = "1",
-                    customerName = "John Doe",
-                    service = "Plumbing Repair",
-                    status = "Pending",
-                    price = "Rs. 800",
-                    address = "123 Main St, Islamabad",
-                    date = "2023-06-15",
-                    time = "14:00",
-                    customerPhone = "+92 300 1234567"
-                ),
-                BookingRequest(
-                    id = "2",
-                    customerName = "Jane Smith",
-                    service = "Pipe Installation",
-                    status = "Accepted",
-                    price = "Rs. 1200",
-                    address = "456 Park Ave, Lahore",
-                    date = "2023-06-16",
-                    time = "10:00",
-                    customerPhone = "+92 300 7654321"
-                ),
-                BookingRequest(
-                    id = "3",
-                    customerName = "Ahmed Khan",
-                    service = "Sink Repair",
-                    status = "Completed",
-                    price = "Rs. 500",
-                    address = "789 Garden Rd, Karachi",
-                    date = "2023-06-14",
-                    time = "16:00",
-                    customerPhone = "+92 300 9876543"
-                )
-            )
-            isLoadingBookings = false
+            // Fetch booking requests from Firestore
+            // Filter by the skilled person's ID
+            firestore.collection("bookings")
+                .whereEqualTo("skilledId", currentUser.uid)
+                .get()
+                .addOnSuccessListener { documents ->
+                    val fetchedBookings = mutableListOf<BookingRequest>()
+                    for (document in documents) {
+                        val booking = BookingRequest(
+                            id = document.id,
+                            customerName = document.getString("customerName") ?: "",
+                            service = document.getString("service") ?: "",
+                            status = document.getString("status") ?: "Pending",
+                            price = document.getString("price") ?: "",
+                            address = document.getString("address") ?: "",
+                            date = document.getString("date") ?: "",
+                            time = document.getString("time") ?: "",
+                            customerPhone = document.getString("customerPhone") ?: ""
+                        )
+                        fetchedBookings.add(booking)
+                    }
+                    bookingRequests = fetchedBookings
+                    isLoadingBookings = false
+                }
+                .addOnFailureListener {
+                    // If there's an error, we'll just show an empty list
+                    bookingRequests = emptyList()
+                    isLoadingBookings = false
+                }
         }
     }
 
@@ -153,8 +145,58 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = { /* Settings */ }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+                    // Settings menu
+                    var showSettingsMenu by remember { mutableStateOf(false) }
+
+                    Box {
+                        IconButton(onClick = { showSettingsMenu = true }) {
+                            Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Color.White)
+                        }
+
+                        DropdownMenu(
+                            expanded = showSettingsMenu,
+                            onDismissRequest = { showSettingsMenu = false },
+                            modifier = Modifier.background(Color.White)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("App Settings") },
+                                onClick = {
+                                    showSettingsMenu = false
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("App Settings clicked")
+                                    }
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Filled.Settings, contentDescription = null)
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Help & Support") },
+                                onClick = {
+                                    showSettingsMenu = false
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Help & Support clicked")
+                                    }
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Filled.Help, contentDescription = null)
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("About") },
+                                onClick = {
+                                    showSettingsMenu = false
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("About clicked")
+                                    }
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Filled.Info, contentDescription = null)
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -275,13 +317,109 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                                     }
 
                                     Spacer(modifier = Modifier.height(16.dp))
+                                    // Availability state
+                                    var showAvailabilityDialog by remember { mutableStateOf(false) }
+                                    var isAvailable by remember { mutableStateOf(userData?.get("isAvailable") as? Boolean ?: true) }
+
                                     Button(
-                                        onClick = { /* TODO: Set availability */ },
+                                        onClick = { showAvailabilityDialog = true },
                                         modifier = Modifier.fillMaxWidth().height(48.dp),
                                         shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F3))
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isAvailable) Color(0xFF4CAF50) else Color(0xFF1877F3)
+                                        )
                                     ) {
-                                        Text("Set Availability", color = Color.White, fontWeight = FontWeight.SemiBold)
+                                        Text(
+                                            if (isAvailable) "Available for Work" else "Set as Available", 
+                                            color = Color.White, 
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+
+                                    // Availability Dialog
+                                    if (showAvailabilityDialog) {
+                                        AlertDialog(
+                                            onDismissRequest = { showAvailabilityDialog = false },
+                                            title = { Text("Set Availability") },
+                                            text = { 
+                                                Column {
+                                                    Text("Are you available to take new bookings?")
+                                                    Spacer(modifier = Modifier.height(16.dp))
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween
+                                                    ) {
+                                                        Button(
+                                                            onClick = { 
+                                                                // Set as available
+                                                                val firestore = FirebaseFirestore.getInstance()
+                                                                val auth = FirebaseAuth.getInstance()
+                                                                val userId = auth.currentUser?.uid
+
+                                                                if (userId != null) {
+                                                                    firestore.collection("users").document(userId)
+                                                                        .update("isAvailable", true)
+                                                                        .addOnSuccessListener {
+                                                                            isAvailable = true
+                                                                            showAvailabilityDialog = false
+                                                                            coroutineScope.launch {
+                                                                                snackbarHostState.showSnackbar("You are now available for bookings")
+                                                                            }
+                                                                        }
+                                                                        .addOnFailureListener { e ->
+                                                                            coroutineScope.launch {
+                                                                                snackbarHostState.showSnackbar("Failed to update availability: ${e.message}")
+                                                                            }
+                                                                        }
+                                                                }
+                                                            },
+                                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                                                            modifier = Modifier.weight(1f)
+                                                        ) {
+                                                            Text("Available", color = Color.White)
+                                                        }
+
+                                                        Spacer(modifier = Modifier.width(16.dp))
+
+                                                        Button(
+                                                            onClick = { 
+                                                                // Set as unavailable
+                                                                val firestore = FirebaseFirestore.getInstance()
+                                                                val auth = FirebaseAuth.getInstance()
+                                                                val userId = auth.currentUser?.uid
+
+                                                                if (userId != null) {
+                                                                    firestore.collection("users").document(userId)
+                                                                        .update("isAvailable", false)
+                                                                        .addOnSuccessListener {
+                                                                            isAvailable = false
+                                                                            showAvailabilityDialog = false
+                                                                            coroutineScope.launch {
+                                                                                snackbarHostState.showSnackbar("You are now unavailable for bookings")
+                                                                            }
+                                                                        }
+                                                                        .addOnFailureListener { e ->
+                                                                            coroutineScope.launch {
+                                                                                snackbarHostState.showSnackbar("Failed to update availability: ${e.message}")
+                                                                            }
+                                                                        }
+                                                                }
+                                                            },
+                                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722)),
+                                                            modifier = Modifier.weight(1f)
+                                                        ) {
+                                                            Text("Unavailable", color = Color.White)
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            confirmButton = { },
+                                            dismissButton = {
+                                                TextButton(onClick = { showAvailabilityDialog = false }) {
+                                                    Text("Cancel")
+                                                }
+                                            }
+                                        )
                                     }
 
                                     Spacer(modifier = Modifier.height(24.dp))
@@ -326,57 +464,68 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                                         }
                                     } else {
                                         // Show the most recent 2 bookings
-                                        bookingRequests.take(2).forEach { booking ->
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 8.dp),
-                                                shape = RoundedCornerShape(16.dp),
-                                                elevation = CardDefaults.cardElevation(4.dp),
-                                                colors = CardDefaults.cardColors(containerColor = Color.White)
-                                            ) {
-                                                Column(modifier = Modifier.padding(16.dp)) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        LazyColumn(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 300.dp) // Limit height to prevent layout issues
+                                        ) {
+                                            items(bookingRequests.take(2)) { booking ->
+                                                Card(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 8.dp),
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    elevation = CardDefaults.cardElevation(4.dp),
+                                                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                                                ) {
+                                                    Column(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(16.dp)
                                                     ) {
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            horizontalArrangement = Arrangement.SpaceBetween
+                                                        ) {
+                                                            Text(
+                                                                booking.service,
+                                                                fontSize = 16.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color(0xFF2A0845),
+                                                                modifier = Modifier.weight(1f)
+                                                            )
+                                                            Text(
+                                                                booking.status,
+                                                                fontSize = 14.sp,
+                                                                color = when(booking.status) {
+                                                                    "Pending" -> Color(0xFFFFA500)
+                                                                    "Accepted" -> Color(0xFF4CAF50)
+                                                                    "Completed" -> Color(0xFF2196F3)
+                                                                    "Rejected" -> Color(0xFFFF5722)
+                                                                    else -> Color.Gray
+                                                                }
+                                                            )
+                                                        }
+                                                        Spacer(modifier = Modifier.height(4.dp))
                                                         Text(
-                                                            booking.service,
-                                                            fontSize = 16.sp,
-                                                            fontWeight = FontWeight.Bold,
+                                                            "Customer: ${booking.customerName}",
+                                                            fontSize = 14.sp,
+                                                            color = Color.Black
+                                                        )
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(
+                                                            "Date: ${booking.date} at ${booking.time}",
+                                                            fontSize = 14.sp,
+                                                            color = Color.Gray
+                                                        )
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Text(
+                                                            "Price: ${booking.price}",
+                                                            fontSize = 14.sp,
+                                                            fontWeight = FontWeight.SemiBold,
                                                             color = Color(0xFF2A0845)
                                                         )
-                                                        Text(
-                                                            booking.status,
-                                                            fontSize = 14.sp,
-                                                            color = when(booking.status) {
-                                                                "Pending" -> Color(0xFFFFA500)
-                                                                "Accepted" -> Color(0xFF4CAF50)
-                                                                "Completed" -> Color(0xFF2196F3)
-                                                                "Rejected" -> Color(0xFFFF5722)
-                                                                else -> Color.Gray
-                                                            }
-                                                        )
                                                     }
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        "Customer: ${booking.customerName}",
-                                                        fontSize = 14.sp,
-                                                        color = Color.Black
-                                                    )
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        "Date: ${booking.date} at ${booking.time}",
-                                                        fontSize = 14.sp,
-                                                        color = Color.Gray
-                                                    )
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        "Price: ${booking.price}",
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = Color(0xFF2A0845)
-                                                    )
                                                 }
                                             }
                                         }
@@ -509,10 +658,26 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                                                                 Row(modifier = Modifier.fillMaxWidth()) {
                                                                     Button(
                                                                         onClick = {
-                                                                            // TODO: Accept booking logic
-                                                                            coroutineScope.launch {
-                                                                                snackbarHostState.showSnackbar("Booking accepted")
-                                                                            }
+                                                                            // Accept booking logic
+                                                                            val firestore = FirebaseFirestore.getInstance()
+                                                                            firestore.collection("bookings").document(booking.id)
+                                                                                .update("status", "Accepted")
+                                                                                .addOnSuccessListener {
+                                                                                    // Update local state
+                                                                                    val updatedBookings = bookingRequests.map {
+                                                                                        if (it.id == booking.id) it.copy(status = "Accepted") else it
+                                                                                    }
+                                                                                    bookingRequests = updatedBookings
+
+                                                                                    coroutineScope.launch {
+                                                                                        snackbarHostState.showSnackbar("Booking accepted")
+                                                                                    }
+                                                                                }
+                                                                                .addOnFailureListener { e ->
+                                                                                    coroutineScope.launch {
+                                                                                        snackbarHostState.showSnackbar("Failed to accept booking: ${e.message}")
+                                                                                    }
+                                                                                }
                                                                         },
                                                                         modifier = Modifier.weight(1f),
                                                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
@@ -522,10 +687,26 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                                                                     Spacer(modifier = Modifier.width(8.dp))
                                                                     Button(
                                                                         onClick = {
-                                                                            // TODO: Reject booking logic
-                                                                            coroutineScope.launch {
-                                                                                snackbarHostState.showSnackbar("Booking rejected")
-                                                                            }
+                                                                            // Reject booking logic
+                                                                            val firestore = FirebaseFirestore.getInstance()
+                                                                            firestore.collection("bookings").document(booking.id)
+                                                                                .update("status", "Rejected")
+                                                                                .addOnSuccessListener {
+                                                                                    // Update local state
+                                                                                    val updatedBookings = bookingRequests.map {
+                                                                                        if (it.id == booking.id) it.copy(status = "Rejected") else it
+                                                                                    }
+                                                                                    bookingRequests = updatedBookings
+
+                                                                                    coroutineScope.launch {
+                                                                                        snackbarHostState.showSnackbar("Booking rejected")
+                                                                                    }
+                                                                                }
+                                                                                .addOnFailureListener { e ->
+                                                                                    coroutineScope.launch {
+                                                                                        snackbarHostState.showSnackbar("Failed to reject booking: ${e.message}")
+                                                                                    }
+                                                                                }
                                                                         },
                                                                         modifier = Modifier.weight(1f),
                                                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722))
@@ -537,10 +718,26 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                                                             "Accepted" -> {
                                                                 Button(
                                                                     onClick = {
-                                                                        // TODO: Mark as completed logic
-                                                                        coroutineScope.launch {
-                                                                            snackbarHostState.showSnackbar("Booking marked as completed")
-                                                                        }
+                                                                        // Mark as completed logic
+                                                                        val firestore = FirebaseFirestore.getInstance()
+                                                                        firestore.collection("bookings").document(booking.id)
+                                                                            .update("status", "Completed")
+                                                                            .addOnSuccessListener {
+                                                                                // Update local state
+                                                                                val updatedBookings = bookingRequests.map {
+                                                                                    if (it.id == booking.id) it.copy(status = "Completed") else it
+                                                                                }
+                                                                                bookingRequests = updatedBookings
+
+                                                                                coroutineScope.launch {
+                                                                                    snackbarHostState.showSnackbar("Booking marked as completed")
+                                                                                }
+                                                                            }
+                                                                            .addOnFailureListener { e ->
+                                                                                coroutineScope.launch {
+                                                                                    snackbarHostState.showSnackbar("Failed to complete booking: ${e.message}")
+                                                                                }
+                                                                            }
                                                                     },
                                                                     modifier = Modifier.fillMaxWidth(),
                                                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
@@ -624,12 +821,21 @@ fun SkilledDashboardScreen(navController: NavHostController = rememberNavControl
                                         auth.signOut()
                                         // Navigate to signin screen
                                         navController.navigate(Screen.SignIn.route) {
-                                            popUpTo(0) { inclusive = true }
+                                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                            launchSingleTop = true
                                         }
                                     },
                                     onEditProfile = {
                                         // Navigate to profile edit screen
-                                        navController.navigate(Screen.SkilledProfile.route)
+                                        val userId = FirebaseAuth.getInstance().currentUser?.uid
+                                        if (userId != null) {
+                                            navController.navigate(Screen.SkilledProfile.route)
+                                        } else {
+                                            // Handle the case where userId is null
+                                            coroutineScope.launch {
+                                                snackbarHostState.showSnackbar("Error: User not authenticated. Please sign in again.")
+                                            }
+                                        }
                                     }
                                 )
                             }

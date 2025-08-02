@@ -63,19 +63,54 @@ fun SkilledProfileScreen(
     val showInputErrorSnackbar = remember { mutableStateOf(false) }
     val inputErrorMessage = remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+    val isEditMode = remember { mutableStateOf(false) } // Track if we're editing existing data
 
     val isFormValid = fullName.value.isNotBlank() && cnic.value.isNotBlank() && phone.value.isNotBlank() &&
             trade.value.isNotBlank() && experience.value.isNotBlank() && address.value.isNotBlank()
+
+    // Fetch existing user data when screen loads
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            try {
+                val document = firestore.collection("users").document(userId).get().await()
+                if (document.exists()) {
+                    val existingName = document.getString("fullName") ?: document.getString("name") ?: ""
+                    val existingCnic = document.getString("cnic") ?: ""
+                    val existingPhone = document.getString("phone") ?: document.getString("phoneNumber") ?: ""
+                    val existingTrade = document.getString("trade") ?: ""
+                    val existingExperience = document.getString("experience") ?: document.getString("yearsOfExperience") ?: ""
+                    val existingAddress = document.getString("address") ?: ""
+                    
+                    fullName.value = existingName
+                    cnic.value = existingCnic
+                    phone.value = existingPhone
+                    trade.value = existingTrade
+                    experience.value = existingExperience
+                    address.value = existingAddress
+                    
+                    // Set edit mode if any data exists
+                    isEditMode.value = existingName.isNotBlank() || existingCnic.isNotBlank() || 
+                                     existingPhone.isNotBlank() || existingTrade.isNotBlank() ||
+                                     existingExperience.isNotBlank() || existingAddress.isNotBlank()
+                }
+            } catch (e: Exception) {
+                // Handle error silently or show a message
+            }
+        }
+    }
 
     suspend fun saveProfile(): Boolean {
         return try {
             val profileData = hashMapOf(
                 "uid" to userId,
                 "fullName" to fullName.value,
+                "name" to fullName.value, // Keep both for compatibility
                 "cnic" to cnic.value,
                 "phone" to phone.value,
+                "phoneNumber" to phone.value, // Keep both for compatibility
                 "trade" to trade.value,
                 "experience" to experience.value,
+                "yearsOfExperience" to experience.value, // Keep both for compatibility
                 "address" to address.value,
                 "profileComplete" to true,
                 "role" to "provider"
@@ -128,7 +163,7 @@ fun SkilledProfileScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Complete Your\nProfile",
+                    text = if (isEditMode.value) "Edit Your\nProfile" else "Complete Your\nProfile",
                     color = Color.White,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
@@ -239,7 +274,11 @@ fun SkilledProfileScreen(
                         if (isLoading.value) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                         } else {
-                            Text("Save Profile", color = Color.White, fontSize = 18.sp)
+                            Text(
+                                if (isEditMode.value) "Update Profile" else "Save Profile", 
+                                color = Color.White, 
+                                fontSize = 18.sp
+                            )
                         }
                     }
                     if (showValidationError.value && !isFormValid) {

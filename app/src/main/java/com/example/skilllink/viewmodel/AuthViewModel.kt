@@ -27,6 +27,12 @@ class AuthViewModel : ViewModel() {
         email: String,
         password: String,
         role: String,
+        // Additional fields for skilled persons
+        cnic: String = "",
+        phoneNumber: String = "",
+        selectedTrade: String = "",
+        yearsOfExperience: String = "",
+        address: String = "",
         onSuccess: () -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
@@ -40,8 +46,22 @@ class AuthViewModel : ViewModel() {
                             "uid" to uid,
                             "email" to email,
                             "role" to if (role == "Customer") "customer" else "provider",
-                            "name" to name
+                            "name" to name,
+                            "fullName" to name,
+                            "profileComplete" to true
                         )
+                        
+                        // Add skilled person specific fields if role is Skilled Person
+                        if (role == "Skilled Person") {
+                            user["cnic"] = cnic
+                            user["phone"] = phoneNumber
+                            user["phoneNumber"] = phoneNumber
+                            user["trade"] = selectedTrade
+                            user["experience"] = yearsOfExperience
+                            user["yearsOfExperience"] = yearsOfExperience
+                            user["address"] = address
+                        }
+                        
                         firestore.collection("users").document(uid).set(user)
                             .addOnSuccessListener {
                                 _authState.value = AuthResult.Success

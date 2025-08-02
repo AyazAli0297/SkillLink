@@ -6,6 +6,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
@@ -62,11 +64,13 @@ fun SignInScreen(
         if (authState is AuthResult.Success && lastRole.value.isNotBlank()) {
             if (lastRole.value == "customer") {
                 navController.navigate(Screen.CustomerDashboard.route) {
-                    popUpTo(Screen.SignIn.route) { inclusive = true }
+                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                    launchSingleTop = true
                 }
             } else if (lastRole.value == "provider") {
                 navController.navigate(Screen.SkilledDashboard.route) {
-                    popUpTo(Screen.SignIn.route) { inclusive = true }
+                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                    launchSingleTop = true
                 }
             }
             viewModel.resetState()
@@ -111,8 +115,41 @@ fun SignInScreen(
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Start
                 )
-                IconButton(onClick = { /* TODO: menu */ }) {
-                    Icon(Icons.Filled.MoreVert, contentDescription = "Menu", tint = Color.White)
+                // Menu dropdown
+                val showMenu = remember { mutableStateOf(false) }
+
+                Box {
+                    IconButton(onClick = { showMenu.value = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Menu", tint = Color.White)
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu.value,
+                        onDismissRequest = { showMenu.value = false },
+                        modifier = Modifier.background(Color.White)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Help") },
+                            onClick = {
+                                showMenu.value = false
+                                snackbarMessage.value = "Help option selected"
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Filled.Help, contentDescription = null)
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("About") },
+                            onClick = {
+                                showMenu.value = false
+                                snackbarMessage.value = "About option selected"
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Filled.Info, contentDescription = null)
+                            }
+                        )
+                    }
                 }
             }
             // Card
@@ -160,8 +197,69 @@ fun SignInScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = onForgotPassword) {
+                        // Forgot password dialog state
+                        val showForgotPasswordDialog = remember { mutableStateOf(false) }
+                        val resetEmail = remember { mutableStateOf("") }
+
+                        TextButton(onClick = { 
+                            showForgotPasswordDialog.value = true
+                            resetEmail.value = email.value
+                        }) {
                             Text("Forgot password?", color = Color.Gray)
+                        }
+
+                        // Forgot password dialog
+                        if (showForgotPasswordDialog.value) {
+                            AlertDialog(
+                                onDismissRequest = { showForgotPasswordDialog.value = false },
+                                title = { Text("Reset Password") },
+                                text = {
+                                    Column {
+                                        Text("Enter your email address to receive a password reset link.")
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        OutlinedTextField(
+                                            value = resetEmail.value,
+                                            onValueChange = { resetEmail.value = it },
+                                            label = { Text("Email") },
+                                            singleLine = true,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            if (resetEmail.value.isNotBlank()) {
+                                                // Send password reset email
+                                                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                                                auth.sendPasswordResetEmail(resetEmail.value)
+                                                    .addOnCompleteListener { task ->
+                                                        if (task.isSuccessful) {
+                                                            snackbarMessage.value = "Password reset email sent to ${resetEmail.value}"
+                                                        } else {
+                                                            snackbarMessage.value = "Failed to send reset email: ${task.exception?.message}"
+                                                        }
+                                                        showForgotPasswordDialog.value = false
+                                                    }
+                                            } else {
+                                                snackbarMessage.value = "Please enter a valid email address"
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Brush.horizontalGradient(
+                                                listOf(Color(0xFFB31217), Color(0xFF2A0845))
+                                            ).toBrushColor()
+                                        )
+                                    ) {
+                                        Text("Reset Password", color = Color.White)
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showForgotPasswordDialog.value = false }) {
+                                        Text("Cancel")
+                                    }
+                                }
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -194,11 +292,24 @@ fun SignInScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Don't have account? ", color = Color.Gray)
-                        TextButton(onClick = onSignUp) {
-                            Text("Sign up", color = Color(0xFFB31217))
+                        Text(
+                            "Don't have an account? ", 
+                            color = Color.Gray,
+                            fontSize = 16.sp
+                        )
+                        TextButton(
+                            onClick = onSignUp,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                        ) {
+                            Text(
+                                "Sign Up", 
+                                color = Color(0xFFB31217),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }
