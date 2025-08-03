@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
@@ -135,7 +136,7 @@ fun SignInScreen(
                                 snackbarMessage.value = "Help option selected"
                             },
                             leadingIcon = {
-                                Icon(Icons.Filled.Help, contentDescription = null)
+                                Icon(Icons.AutoMirrored.Filled.Help, contentDescription = null)
                             }
                         )
 
